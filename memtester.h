@@ -17,6 +17,7 @@
 
 /* extern declarations. */
 
+extern int stop_at_fail;
 extern int use_phys;
 extern off_t physaddrbase;
 

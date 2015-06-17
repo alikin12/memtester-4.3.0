@@ -17,6 +17,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <unistd.h>
+#include <termios.h>
 
 #include "types.h"
 #include "sizes.h"
@@ -29,29 +31,55 @@ char progress[] = "-\\|/";
 
 /* Function definitions. */
 
+int getch(void)
+{
+	int ch;
+	struct termios oldt;
+	struct termios newt;
+	tcgetattr(STDIN_FILENO, &oldt); /*store old settings */
+	newt = oldt; /* copy old settings to new settings */
+	newt.c_lflag &= ~(ICANON | ECHO); /* make one change to old settings in new settings */
+	tcsetattr(STDIN_FILENO, TCSANOW, &newt); /*apply the new settings immediatly */
+	ch = getchar(); /* standard getchar call */
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldt); /*reapply the old settings */
+	return ch; /*return received char */
+}
+
 int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     int r = 0;
+	char c = 0;
     size_t i;
     ulv *p1 = bufa;
     ulv *p2 = bufb;
     off_t physaddr;
 
     for (i = 0; i < count; i++, p1++, p2++) {
-        if (*p1 != *p2) {
-            if (use_phys) {
-                physaddr = physaddrbase + (i * sizeof(ul));
-                fprintf(stderr, 
-                        "FAILURE: 0x%08lx != 0x%08lx at physical address "
-                        "0x%08lx.\n", 
-                        (ul) *p1, (ul) *p2, physaddr);
-            } else {
-                fprintf(stderr, 
-                        "FAILURE: 0x%08lx != 0x%08lx at offset 0x%08lx.\n", 
-                        (ul) *p1, (ul) *p2, (ul) (i * sizeof(ul)));
-            }
-            /* printf("Skipping to next test..."); */
-            r = -1;
-        }
+		do {
+			if (c>0)
+				printf("New read: val1=0x%08lx, val2=0x%08lx.\n",(ul) *p1, (ul) *p2);
+			c=0;
+			if (*p1 != *p2) {
+				if (use_phys) {
+					physaddr = physaddrbase + (i * sizeof(ul));
+					fprintf(stderr, 
+							"FAILURE: 0x%08lx != 0x%08lx at physical address "
+							"0x%08lx.\n", 
+							(ul) *p1, (ul) *p2, physaddr);
+				} else {
+					fprintf(stderr, 
+							"FAILURE: 0x%08lx != 0x%08lx at offset 0x%08lx.\n", 
+							(ul) *p1, (ul) *p2, (ul) (i * sizeof(ul)));
+				}
+			
+				if (stop_at_fail == 1)
+				{
+					printf("Error found. Press 'r' to read out the value again or any key to continue test!\n");
+					c = getch();
+				}
+				/* printf("Skipping to next test..."); */
+				r = -1;
+			}
+		} while (c == 'r');
     }
     return r;
 }

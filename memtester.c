@@ -12,7 +12,7 @@
  *
  */
 
-#define __version__ "4.3.0"
+#define __version__ "4.3.1"
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -97,12 +97,13 @@ void usage(char *me);
 
 /* Global vars - so tests have access to this information */
 int use_phys = 0;
+int stop_at_fail = 0;
 off_t physaddrbase = 0;
 
 /* Function definitions */
 void usage(char *me) {
     fprintf(stderr, "\n"
-            "Usage: %s [-p physaddrbase [-d device]] <mem>[B|K|M|G] [loops]\n",
+            "Usage: %s [-s] [-p physaddrbase [-d device]] <mem>[B|K|M|G] [loops]\n",
             me);
     exit(EXIT_FAIL_NONSTARTER);
 }
@@ -150,8 +151,11 @@ int main(int argc, char **argv) {
         printf("using testmask 0x%lx\n", testmask);
     }
 
-    while ((opt = getopt(argc, argv, "p:d:")) != -1) {
+    while ((opt = getopt(argc, argv, "sp:d:")) != -1) {
         switch (opt) {
+			case 's':
+				stop_at_fail = 1;
+				break;
             case 'p':
                 errno = 0;
                 physaddrbase = (off_t) strtoull(optarg, &addrsuffix, 16);
