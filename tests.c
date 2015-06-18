@@ -54,11 +54,7 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
     off_t physaddr;
 
     for (i = 0; i < count; i++, p1++, p2++) {
-		do {
-			if (c>0)
-				printf("New read: val1=0x%08lx, val2=0x%08lx.\n",(ul) *p1, (ul) *p2);
-			c=0;
-			if (*p1 != *p2) {
+compare:		if (*p1 != *p2) {
 				if (use_phys) {
 					physaddr = physaddrbase + (i * sizeof(ul));
 					fprintf(stderr, 
@@ -73,13 +69,16 @@ int compare_regions(ulv *bufa, ulv *bufb, size_t count) {
 			
 				if (stop_at_fail == 1)
 				{
-					printf("Error found. Press 'r' to read out the value again or any key to continue test!\n");
+					printf("Error found. Press 'r' to read out the value again, e to exit program or any key to continue test!\n");
 					c = getch();
+					if (c == 'e')
+						exit(0);
+					else if (c == 'r')
+						goto compare;
 				}
 				/* printf("Skipping to next test..."); */
 				r = -1;
 			}
-		} while (c == 'r');
     }
     return r;
 }
